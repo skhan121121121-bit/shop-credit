@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, push, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqD1fUrRi__yIQJlTezAawZ-4xYNtIGyQ",
+  authDomain: "shop-credit-saas-d3dfb.firebaseapp.com",
+  databaseURL: "https://shop-credit-saas-d3dfb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "shop-credit-saas-d3dfb",
+  storageBucket: "shop-credit-saas-d3dfb.firebasestorage.app",
+  messagingSenderId: "154575017871",
+  appId: "1:154575017871:web:ea1944700ed3957c669dfa"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser;
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) window.location="login.html";
+  else {
+    currentUser = user;
+    loadCustomers();
+  }
+});
+
+window.addCustomer = function(){
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+
+  const customerRef = push(ref(db,"customers/"+currentUser.uid));
+  set(customerRef,{
+    name,
+    phone,
+    total_due:0,
+    total_paid:0
+  });
+
+  document.getElementById("name").value="";
+  document.getElementById("phone").value="";
+}
+
+function loadCustomers(){
+  const customerRef = ref(db,"customers/"+currentUser.uid);
+
+  onValue(customerRef,(snapshot)=>{
+    let html="";
+    snapshot.forEach(child=>{
+      const c = child.val();
+      html+=`
+        <div style="border:1px solid #ccc;padding:10px;margin:5px;">
+          <b>${c.name}</b><br>
+          Phone: ${c.phone}<br>
+          Due: ₹${c.total_due}
+          <br>
+          <button onclick="openCustomer('${child.key}')">View</button>
+        </div>
+      `;
+    });
+    document.getElementById("list").innerHTML=html;
+  });
+}
+
+window.openCustomer=function(id){
+  window.location="customer.html?id="+id;
+}
+
+window.logout=async function(){
+  await signOut(auth);
+  window.location="login.html";
+}
+</script>
+</head>
+<body>
+<h2>Dashboard</h2>
+
+<input id="name" placeholder="Customer Name">
+<input id="phone" placeholder="Phone">
+<button onclick="addCustomer()">Add Customer</button>
+
+<hr>
+<div id="list"></div>
+
+<hr>
+<button onclick="logout()">Logout</button>
+</body>
+</html>
